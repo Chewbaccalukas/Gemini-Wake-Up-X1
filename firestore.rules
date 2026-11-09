@@ -1,0 +1,189 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Hardened Global Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprint 1: ChatSessionDoc
+    function isValidChatSessionDoc(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.localChatId is int && data.localChatId >= 0 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.wakeWord is string && data.wakeWord.size() <= 120 &&
+             data.systemInstruction is string && data.systemInstruction.size() <= 4000 &&
+             data.themeColorHex is string && data.themeColorHex.size() >= 4 && data.themeColorHex.size() <= 16 &&
+             data.iconName is string && data.iconName.size() >= 1 && data.iconName.size() <= 64 &&
+             data.isDefaultWakeChat is bool &&
+             data.isPersistent is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Validation Blueprint 2: ChatMessageDoc
+    function isValidChatMessageDoc(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.localChatId is int && data.localChatId >= 0 &&
+             data.localMessageId is int && data.localMessageId >= 0 &&
+             data.sender is string && (data.sender == 'user' || data.sender == 'gemini') &&
+             data.content is string && data.content.size() >= 1 && data.content.size() <= 20000 &&
+             data.triggeredByWakeWord is bool &&
+             data.messageTimestamp is int && data.messageTimestamp >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // Validation Blueprint 3: WakeWordDoc
+    function isValidWakeWordDoc(data, userId) {
+      return data.userId is string &&
+             data.userId == userId &&
+             data.userId == request.auth.uid &&
+             data.userId.size() >= 1 && data.userId.size() <= 128 &&
+             data.localWakeWordId is int && data.localWakeWordId >= 0 &&
+             data.phrase is string && data.phrase.size() >= 1 && data.phrase.size() <= 120 &&
+             data.triggerType is string && (data.triggerType == 'CHAT' || data.triggerType == 'HANDS_FREE') &&
+             data.chatId is int && data.chatId >= 0 &&
+             data.chatTitle is string && data.chatTitle.size() <= 200 &&
+             data.isEnabled is bool &&
+             (data.sensitivity is float || data.sensitivity is int) &&
+             data.sensitivity >= 0.45 && data.sensitivity <= 1.0 &&
+             (!('metadata' in data) || data.metadata == null || (data.metadata is string && data.metadata.size() <= 500)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 1. Per-User Chat Sessions Collection
+    match /users/{userId}/chats/{chatId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(chatId);
+      allow list: if isOwner(userId) && isValidId(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(chatId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'localChatId', 'title', 'wakeWord', 'systemInstruction',
+                         'themeColorHex', 'iconName', 'isDefaultWakeChat', 'isPersistent',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'localChatId', 'title', 'wakeWord', 'systemInstruction',
+                         'themeColorHex', 'iconName', 'isDefaultWakeChat', 'isPersistent',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidChatSessionDoc(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(chatId) &&
+                       isValidChatSessionDoc(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().localChatId == existing().localChatId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'title', 'wakeWord', 'systemInstruction', 'themeColorHex',
+                         'iconName', 'isDefaultWakeChat', 'isPersistent', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(chatId);
+    }
+
+    // 2. Per-User Chat Messages Collection
+    match /users/{userId}/messages/{messageId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(messageId);
+      allow list: if isOwner(userId) && isValidId(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(messageId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'localChatId', 'localMessageId', 'sender', 'content',
+                         'triggeredByWakeWord', 'messageTimestamp', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'localChatId', 'localMessageId', 'sender', 'content',
+                         'triggeredByWakeWord', 'messageTimestamp', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidChatMessageDoc(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(messageId) &&
+                       isValidChatMessageDoc(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().localChatId == existing().localChatId &&
+                       incoming().localMessageId == existing().localMessageId &&
+                       incoming().sender == existing().sender &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'content', 'triggeredByWakeWord', 'messageTimestamp', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(messageId);
+    }
+
+    // 3. Per-User Wake Words Collection
+    match /users/{userId}/wake_words/{wakeWordId} {
+      allow get: if isOwner(userId) && isValidId(userId) && isValidId(wakeWordId);
+      allow list: if isOwner(userId) && isValidId(userId);
+
+      allow create: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(wakeWordId) &&
+                       incoming().keys().hasAll([
+                         'userId', 'localWakeWordId', 'phrase', 'triggerType',
+                         'chatId', 'chatTitle', 'isEnabled', 'sensitivity',
+                         'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'userId', 'localWakeWordId', 'phrase', 'triggerType',
+                         'chatId', 'chatTitle', 'isEnabled', 'sensitivity',
+                         'metadata', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidWakeWordDoc(incoming(), userId);
+
+      allow update: if isOwner(userId) &&
+                       isValidId(userId) &&
+                       isValidId(wakeWordId) &&
+                       isValidWakeWordDoc(incoming(), userId) &&
+                       incoming().userId == existing().userId &&
+                       incoming().localWakeWordId == existing().localWakeWordId &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'phrase', 'triggerType', 'chatId', 'chatTitle',
+                         'isEnabled', 'sensitivity', 'metadata', 'updatedAt'
+                       ]);
+
+      allow delete: if isOwner(userId) && isValidId(userId) && isValidId(wakeWordId);
+    }
+  }
+}

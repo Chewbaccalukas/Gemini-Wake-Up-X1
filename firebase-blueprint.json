@@ -1,0 +1,213 @@
+{
+  "entities": {
+    "ChatSessionDoc": {
+      "title": "ChatSessionDoc",
+      "description": "Cloud-synced chat session with associated primary wake word and configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Google user UID owning this chat session."
+        },
+        "localChatId": {
+          "type": "integer",
+          "description": "Local Room ChatSession ID mapped to this cloud document."
+        },
+        "title": {
+          "type": "string",
+          "description": "Display title of the chat conversation."
+        },
+        "wakeWord": {
+          "type": "string",
+          "description": "Primary wake word phrase associated with this chat session."
+        },
+        "systemInstruction": {
+          "type": "string",
+          "description": "System instruction prompt for the Gemini persona in this chat."
+        },
+        "themeColorHex": {
+          "type": "string",
+          "description": "Hex color string for the chat accent."
+        },
+        "iconName": {
+          "type": "string",
+          "description": "Icon identifier for the chat avatar."
+        },
+        "isDefaultWakeChat": {
+          "type": "boolean",
+          "description": "Whether this chat is the default fallback wake-word target."
+        },
+        "isPersistent": {
+          "type": "boolean",
+          "description": "Whether conversation messages persist across sessions."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "localChatId",
+        "title",
+        "wakeWord",
+        "systemInstruction",
+        "themeColorHex",
+        "iconName",
+        "isDefaultWakeChat",
+        "isPersistent",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChatMessageDoc": {
+      "title": "ChatMessageDoc",
+      "description": "Cloud-synced conversation message belonging to a user's chat session.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Google user UID owning this message."
+        },
+        "localChatId": {
+          "type": "integer",
+          "description": "Local Room ChatSession ID this message belongs to."
+        },
+        "localMessageId": {
+          "type": "integer",
+          "description": "Local Room ChatMessage ID mapped to this cloud document."
+        },
+        "sender": {
+          "type": "string",
+          "enum": ["user", "gemini"],
+          "description": "Message author role ('user' or 'gemini')."
+        },
+        "content": {
+          "type": "string",
+          "description": "Transcribed spoken text or typed message content."
+        },
+        "triggeredByWakeWord": {
+          "type": "boolean",
+          "description": "Whether this message was initiated via wake word detection."
+        },
+        "messageTimestamp": {
+          "type": "integer",
+          "description": "Client epoch millisecond timestamp of the message turn."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "localChatId",
+        "localMessageId",
+        "sender",
+        "content",
+        "triggeredByWakeWord",
+        "messageTimestamp",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WakeWordDoc": {
+      "title": "WakeWordDoc",
+      "description": "Cloud-synced custom wake word phrase and sensitivity configuration.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "Authenticated Google user UID owning this wake word."
+        },
+        "localWakeWordId": {
+          "type": "integer",
+          "description": "Local Room WakeWord ID mapped to this cloud document."
+        },
+        "phrase": {
+          "type": "string",
+          "description": "Spoken wake word phrase."
+        },
+        "triggerType": {
+          "type": "string",
+          "enum": ["CHAT", "HANDS_FREE"],
+          "description": "Wake word trigger category ('CHAT' or 'HANDS_FREE')."
+        },
+        "chatId": {
+          "type": "integer",
+          "description": "Associated local chat ID (0 when not linked to a specific chat)."
+        },
+        "chatTitle": {
+          "type": "string",
+          "description": "Title of the associated chat conversation."
+        },
+        "isEnabled": {
+          "type": "boolean",
+          "description": "Whether this wake word is active in the detection loop."
+        },
+        "sensitivity": {
+          "type": "number",
+          "description": "Wake word detection sensitivity threshold between 0.50 and 0.98."
+        },
+        "metadata": {
+          "type": "string",
+          "description": "Optional metadata or system role identifier."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the document was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "userId",
+        "localWakeWordId",
+        "phrase",
+        "triggerType",
+        "chatId",
+        "chatTitle",
+        "isEnabled",
+        "sensitivity",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}/chats/{chatId}": {
+      "schema": {
+        "$ref": "#/entities/ChatSessionDoc"
+      },
+      "description": "Per-user synchronized chat sessions and primary wake word settings."
+    },
+    "/users/{userId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/ChatMessageDoc"
+      },
+      "description": "Per-user synchronized chat messages and transcribed voice turns."
+    },
+    "/users/{userId}/wake_words/{wakeWordId}": {
+      "schema": {
+        "$ref": "#/entities/WakeWordDoc"
+      },
+      "description": "Per-user synchronized custom wake words and sensitivity settings."
+    }
+  }
+}

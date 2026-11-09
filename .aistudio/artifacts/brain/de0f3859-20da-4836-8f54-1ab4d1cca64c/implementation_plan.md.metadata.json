@@ -1,0 +1,6 @@
+{
+  "summary":  "Implementation plan for adding the Quest Filter Toggle ('All', 'Active', 'Completed' with live count badges and persisted selection) and the Visual Rarity Glow Indicator System (Common: Grey, Rare: Blue, Epic: Purple, Legendary: Orange, with an animated pulsing aura on Epic and Legendary items and a static outer glow on Common and Rare items) in the Adventure Engine drawer.",
+  "updatedAt":  "2026-11-09T12:33:43.110039844Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

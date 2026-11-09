@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Gemini 4-point Sparkle Star -->
+    <path
+        android:pathData="M54,28 C54,42 66,54 80,54 C66,54 54,66 54,80 C54,66 42,54 28,54 C42,54 54,42 54,28 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="28"
+                android:startY="28"
+                android:endX="80"
+                android:endY="80"
+                android:type="linear">
+                <item android:offset="0.0" android:color="#38BDF8" />
+                <item android:offset="0.5" android:color="#818CF8" />
+                <item android:offset="1.0" android:color="#C084FC" />
+            </gradient>
+        </aapt:attr>
+    </path>
+    <!-- Center white core spark -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,43 C54,49 59,54 65,54 C59,54 54,59 54,65 C54,59 49,54 43,54 C49,54 54,49 54,43 Z" />
+    <!-- Secondary small sparkle top right -->
+    <path
+        android:fillColor="#38BDF8"
+        android:pathData="M74,32 C74,36 78,40 82,40 C78,40 74,44 74,48 C74,44 70,40 66,40 C70,40 74,36 74,32 Z" />
+    <!-- Voice Sound Wave Arcs bottom left -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#67E8F9"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M30,68 C24,60 24,48 30,40" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#A5B4FC"
+        android:strokeWidth="2.5"
+        android:strokeLineCap="round"
+        android:pathData="M24,73 C16,62 16,46 24,35" />
+</vector>
